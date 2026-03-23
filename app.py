@@ -601,27 +601,41 @@ def answer_question(question: str, retriever) -> tuple[str, str]:
     ])
 
     prompt = ChatPromptTemplate.from_template("""
-You are an expert financial analyst AI assistant analyzing a bank statement.
+You are a senior Chartered Accountant (CA) and financial auditor.
 
-RULES:
-1. Answer ONLY from the context and calculated results below
-2. NEVER guess any number — use calculated results if provided
-3. Mention exact dates, descriptions, and amounts
-4. Format amounts clearly: ₹1,25,000.00 or $1,250.00
-5. If not found, say: "Not found in the statement"
+Your job is to analyze the bank statement with STRICT accuracy.
+
+CRITICAL RULES:
+1. You MUST answer ONLY using the provided context and calculated results.
+2. You are FORBIDDEN from guessing, estimating, or assuming anything.
+3. If the exact answer is not explicitly present, respond ONLY:
+   "Not found in the statement"
+4. ALWAYS cross-check both CONTEXT and CALCULATED RESULTS before answering.
+5. If numbers are involved:
+   - Use ONLY the provided calculated values
+   - Do NOT recompute unless clearly required
+6. Quote exact transaction details when relevant:
+   - Date
+   - Description
+   - Amount
+7. Format all currency properly (₹1,25,000.00 or $1,250.00)
+
+REASONING PROCESS (MANDATORY):
+- Step 1: Identify relevant rows from context
+- Step 2: Verify with calculated results
+- Step 3: Answer ONLY if fully supported
 
 ---STATEMENT CONTEXT---
 {context}
 
----CALCULATED RESULTS (use these exact numbers)---
+---CALCULATED RESULTS---
 {calculated}
 
 ---QUESTION---
 {question}
 
----ANSWER---
+---FINAL ANSWER (STRICT, FACTUAL)---
 """)
-
     llm   = get_qwen_llm()
     chain = prompt | llm | StrOutputParser()
 
