@@ -1,5 +1,3 @@
-
-
 import os
 import warnings
 import pdfplumber
@@ -10,7 +8,6 @@ from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
 
-
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -19,334 +16,22 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
 from pinecone import Pinecone
 
 
-
-# PAGE CONFIG  streamlit call
-
+#  Page Config 
 
 st.set_page_config(
-    page_title = "FinanceIQ — Bank Statement Analyzer",
-    page_icon  = "💳",
-    layout     = "wide",
-    initial_sidebar_state = "expanded"
+    page_title="FinanceIQ — Bank Statement Analyzer",
+    page_icon="💳",
 )
 
 
-
-# theme
-
-
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-/* ── Root Variables ── */
-:root {
-    --bg-primary   : #0a0e1a;
-    --bg-card      : #111827;
-    --bg-input     : #1a2235;
-    --accent       : #00d4aa;
-    --accent-dim   : #00d4aa22;
-    --accent-2     : #4f7cff;
-    --text-primary : #e8edf5;
-    --text-muted   : #6b7a99;
-    --border       : #1e2d45;
-    --success      : #00d4aa;
-    --warning      : #f59e0b;
-    --error        : #ef4444;
-}
-
-/* ── Global ── */
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-}
-
-.stApp {
-    background: linear-gradient(135deg, #0a0e1a 0%, #0d1526 50%, #0a1020 100%);
-}
-
-/* ── Hide Streamlit branding ── */
-#MainMenu, footer, header { visibility: hidden; }
-
-/* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: var(--bg-card) !important;
-    border-right: 1px solid var(--border);
-}
-
-[data-testid="stSidebar"] .block-container {
-    padding-top: 2rem;
-}
-
-/* ── Main header ── */
-.main-header {
-    text-align: center;
-    padding: 2.5rem 0 1.5rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 2rem;
-}
-
-.main-header h1 {
-    font-family: 'Space Mono', monospace;
-    font-size: 2.4rem;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: -1px;
-    margin: 0;
-}
-
-.main-header p {
-    color: var(--text-muted);
-    font-size: 1rem;
-    margin: 0.5rem 0 0;
-    font-weight: 300;
-}
-
-/* ── Status badges ── */
-.badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-family: 'Space Mono', monospace;
-    letter-spacing: 0.5px;
-}
-.badge-green  { background:#00d4aa22; color:#00d4aa; border:1px solid #00d4aa44; }
-.badge-blue   { background:#4f7cff22; color:#4f7cff; border:1px solid #4f7cff44; }
-.badge-yellow { background:#f59e0b22; color:#f59e0b; border:1px solid #f59e0b44; }
-
-/* ── Stat cards ── */
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin: 1.5rem 0;
-}
-
-.stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.2rem 1.4rem;
-    position: relative;
-    overflow: hidden;
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-
-.stat-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-family: 'Space Mono', monospace;
-}
-
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--accent);
-    margin-top: 4px;
-    font-family: 'Space Mono', monospace;
-}
-
-/* ── Chat messages ── */
-.msg-user {
-    background: var(--accent-dim);
-    border: 1px solid #00d4aa33;
-    border-radius: 12px 12px 4px 12px;
-    padding: 1rem 1.2rem;
-    margin: 0.8rem 0;
-    margin-left: 15%;
-    position: relative;
-}
-
-.msg-user::before {
-    content: '👤 YOU';
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--accent);
-    display: block;
-    margin-bottom: 6px;
-    letter-spacing: 1px;
-}
-
-.msg-bot {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px 12px 12px 4px;
-    padding: 1rem 1.2rem;
-    margin: 0.8rem 0;
-    margin-right: 15%;
-}
-
-.msg-bot::before {
-    content: '🤖 FINANCEIQ';
-    font-family: 'Space Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--accent-2);
-    display: block;
-    margin-bottom: 6px;
-    letter-spacing: 1px;
-}
-
-.msg-calc {
-    background: #f59e0b11;
-    border: 1px solid #f59e0b33;
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
-    margin: 0.5rem 0;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.8rem;
-    color: #f59e0b;
-}
-
-.msg-calc::before {
-    content: '🔢 PYTHON CALCULATOR';
-    font-size: 0.65rem;
-    display: block;
-    margin-bottom: 6px;
-    letter-spacing: 1px;
-}
-
-/* ── Upload area ── */
-.upload-zone {
-    border: 2px dashed var(--border);
-    border-radius: 16px;
-    padding: 2.5rem;
-    text-align: center;
-    background: var(--bg-input);
-    transition: border-color 0.2s;
-}
-
-.upload-zone:hover {
-    border-color: var(--accent);
-}
-
-/* ── Buttons ── */
-.stButton > button {
-    background: linear-gradient(135deg, var(--accent) 0%, #00b894 100%) !important;
-    color: #0a0e1a !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-family: 'Space Mono', monospace !important;
-    font-weight: 700 !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.5px !important;
-    padding: 0.6rem 1.5rem !important;
-    transition: all 0.2s !important;
-}
-
-.stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 20px #00d4aa44 !important;
-}
-
-/* ── File uploader ── */
-[data-testid="stFileUploader"] {
-    background: var(--bg-input) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-}
-
-/* ── Text input ── */
-.stTextInput > div > div > input,
-.stChatInputContainer textarea {
-    background: var(--bg-input) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-    color: var(--text-primary) !important;
-    font-family: 'DM Sans', sans-serif !important;
-}
-
-/* ── Divider ── */
-hr { border-color: var(--border) !important; }
-
-/* ── Info/success boxes ── */
-.stSuccess {
-    background: #00d4aa11 !important;
-    border: 1px solid #00d4aa33 !important;
-    border-radius: 10px !important;
-}
-
-.stInfo {
-    background: #4f7cff11 !important;
-    border: 1px solid #4f7cff33 !important;
-    border-radius: 10px !important;
-}
-
-.stWarning {
-    background: #f59e0b11 !important;
-    border: 1px solid #f59e0b33 !important;
-    border-radius: 10px !important;
-}
-
-.stError {
-    background: #ef444411 !important;
-    border: 1px solid #ef444433 !important;
-    border-radius: 10px !important;
-}
-
-/* ── Spinner ── */
-.stSpinner > div {
-    border-top-color: var(--accent) !important;
-}
-
-/* ── Sidebar labels ── */
-.sidebar-section {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin: 1.5rem 0 0.5rem;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-}
-
-/* ── Scrollable chat area ── */
-.chat-container {
-    max-height: 60vh;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-/* ── Calculated results box ── */
-.calc-result {
-    background: #0d1f2d;
-    border-left: 3px solid var(--accent);
-    padding: 0.8rem 1rem;
-    border-radius: 0 8px 8px 0;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
-    color: var(--accent);
-    margin: 0.5rem 0;
-    white-space: pre-wrap;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
-
-# LOAD ENVIRONMENT
-
+#  Load Environment 
 
 load_dotenv()
 
 
 def get_env(key: str) -> str:
-
     try:
         return st.secrets[key]
-
     except Exception:
         return os.getenv(key, "")
 
@@ -360,34 +45,30 @@ if PINECONE_API_KEY:
     os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
 
 
-
-# CALCULATION KEYWORDS
-
+# Calculation Keywords 
 
 CALCULATION_KEYWORDS = [
     "total", "sum", "how much", "calculate", "average", "avg",
     "count", "how many", "maximum", "minimum", "largest", "smallest",
     "highest", "lowest", "balance", "closing", "opening", "spent",
-    "received", "earned", "paid", "withdrawn", "deposited"
+    "received", "earned", "paid", "withdrawn", "deposited",
+    "revenue", "profit", "loss", "income", "expense", "turnover"
 ]
 
 
-
-#  RAG FUNCTIONS
-
+#  Cached Resources 
 
 @st.cache_resource
 def get_nvidia_embeddings():
-
     return NVIDIAEmbeddings(
         model   = "nvidia/llama-3.2-nemoretriever-300m-embed-v1",
         api_key = NVIDIA_EMBEDDING_API_KEY,
         truncate= "NONE",
     )
 
+
 @st.cache_resource
 def get_qwen_llm():
-    """Cached Qwen3.5 LLM client."""
     return ChatNVIDIA(
         model                 = "qwen/qwen3.5-122b-a10b",
         api_key               = NVIDIA_LLM_API_KEY,
@@ -395,15 +76,10 @@ def get_qwen_llm():
         max_completion_tokens = 2048,
     )
 
-@st.cache_resource
-def get_pinecone_index():
-    """Cached Pinecone connection."""
-    pc = Pinecone(api_key=PINECONE_API_KEY)
-    return pc.Index(PINECONE_INDEX_NAME)
 
+# Helper: Clean DataFrame 
 
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-
     new_columns = []
     for i, col in enumerate(df.columns):
         if pd.isna(col) or str(col).strip() == '' or str(col) == 'nan':
@@ -425,17 +101,19 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_metadata_value(value) -> str:
-    """Convert any metadata value to a safe plain string for Pinecone."""
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return ""
     text = str(value).replace('\x00', '').replace('\r', ' ')
     return text[:10000]
 
 
+
+
 def extract_pdf_content(uploaded_file) -> dict:
     """
-    Extracts text and tables from an uploaded PDF file.
-
+    Extracts content three ways per page:
+      1. Full raw page text  (always captured — nothing is lost)
+      2. Structured tables   (when pdfplumber can parse them)
     """
     text_docs  = []
     dataframes = []
@@ -443,42 +121,89 @@ def extract_pdf_content(uploaded_file) -> dict:
     with pdfplumber.open(uploaded_file) as pdf:
         for page_num, page in enumerate(pdf.pages):
 
-            page_text = page.extract_text()
+          
+            page_text = page.extract_text(layout=True)
+
+            if not page_text or not page_text.strip():
+                # Fallback without layout mode
+                page_text = page.extract_text()
+
             if page_text and page_text.strip():
                 text_docs.append(Document(
-                    page_content = page_text,
+                    page_content = page_text.strip(),
                     metadata     = {
                         "page"      : page_num + 1,
                         "type"      : "text",
-                        "chunk_type": "text"
+                        "chunk_type": "full_page_text"
                     }
                 ))
 
-            tables = page.extract_tables()
+           
+            table_settings = {
+                "vertical_strategy"  : "text",   
+                "horizontal_strategy": "text",
+                "snap_tolerance"     : 5,
+                "join_tolerance"     : 5,
+                "edge_min_length"    : 10,
+            }
+
+            try:
+                tables = page.extract_tables(table_settings)
+            except Exception:
+                tables = page.extract_tables()   # fallback to default settings
+
             for table in tables:
                 if not table or len(table) < 2:
                     continue
-                df = pd.DataFrame(table[1:], columns=table[0])
+
+                
+                header_row_idx = 0
+                for idx, row in enumerate(table):
+                    if any(cell and str(cell).strip() for cell in row):
+                        header_row_idx = idx
+                        break
+
+                header = table[header_row_idx]
+                data   = table[header_row_idx + 1:]
+
+                if not data:
+                    continue
+
+                df = pd.DataFrame(data, columns=header)
                 df = df.dropna(how='all').fillna('')
                 dataframes.append({"df": df, "page": page_num + 1})
 
     return {"text_docs": text_docs, "dataframes": dataframes}
 
 
-def chunk_by_transactions(extracted: dict, rows_per_chunk: int = 15) -> list:
-    """Chunk text by lines, tables by complete rows."""
+
+
+def chunk_by_transactions(extracted: dict, rows_per_chunk: int = 30) -> list:
+    """
+    Chunks text pages into 50-line windows (was 20) so section headers
+    stay with their data. Tables are chunked in groups of 30 rows (was 15).
+    """
     all_chunks = []
 
+    #  Text chunks: 50 lines per chunk 
     for doc in extracted["text_docs"]:
-        lines = doc.page_content.split("\n")
-        for i in range(0, len(lines), 20):
-            chunk_text = "\n".join(lines[i: i + 20])
+        lines = [l for l in doc.page_content.split("\n") if l.strip()]
+        chunk_size = 50   # was 20 — bigger window keeps headings with numbers
+
+        for i in range(0, len(lines), chunk_size):
+            chunk_text = "\n".join(lines[i: i + chunk_size])
             if chunk_text.strip():
                 all_chunks.append(Document(
                     page_content = chunk_text,
-                    metadata     = {**doc.metadata, "chunk_type": "text"}
+                    metadata     = {
+                        **doc.metadata,
+                        "chunk_type": "text",
+                        "line_start" : i,
+                        "line_end"   : i + chunk_size,
+                    }
                 ))
 
+    #  Table chunks 
     for table_info in extracted["dataframes"]:
         df   = clean_dataframe(table_info["df"])
         page = table_info["page"]
@@ -503,8 +228,9 @@ def chunk_by_transactions(extracted: dict, rows_per_chunk: int = 15) -> list:
     return all_chunks
 
 
+#  Pinecone Indexing 
+
 def index_to_pinecone(chunks: list) -> PineconeVectorStore:
-    """Embed chunks with NVIDIA and store in Pinecone."""
     embeddings  = get_nvidia_embeddings()
     vectorstore = PineconeVectorStore.from_documents(
         documents  = chunks,
@@ -514,16 +240,18 @@ def index_to_pinecone(chunks: list) -> PineconeVectorStore:
     return vectorstore
 
 
+
+
 def build_retriever(vectorstore: PineconeVectorStore):
-    """Build a similarity retriever from the vector store."""
     return vectorstore.as_retriever(
         search_type   = "similarity",
-        search_kwargs = {"k": 8}
+        search_kwargs = {"k": 15}   # was 8
     )
 
 
+#  Calculator
+
 def run_calculator(retrieved_docs: list) -> str:
-    """Run real Python math on retrieved transaction rows."""
     all_rows = []
     for doc in retrieved_docs:
         if doc.metadata.get("chunk_type") == "transaction_rows":
@@ -553,7 +281,8 @@ def run_calculator(retrieved_docs: list) -> str:
 
     debit_col = credit_col = balance_col = None
     for col in combined_df.columns:
-        if col is None: continue
+        if col is None:
+            continue
         c = str(col).lower().strip()
         if any(x in c for x in ['debit', 'withdrawal', 'dr', 'spent']):
             debit_col = col
@@ -585,127 +314,93 @@ def run_calculator(retrieved_docs: list) -> str:
     return "\n".join(lines)
 
 
+
+
 def answer_question(question: str, retriever) -> tuple[str, str]:
-    """
-    Retrieves context, optionally calculates, then asks Qwen3.5.
-    Returns (answer, calculated_result)
-    """
     retrieved_docs = retriever.invoke(question)
 
     needs_calc = any(kw in question.lower() for kw in CALCULATION_KEYWORDS)
     calculated = run_calculator(retrieved_docs) if needs_calc else ""
 
     formatted_context = "\n\n".join([
-        f"--- Chunk {i+1} | Page {doc.metadata.get('page','?')} ---\n{doc.page_content}"
+        f"--- Chunk {i+1} | Page {doc.metadata.get('page','?')} | Type: {doc.metadata.get('chunk_type','?')} ---\n{doc.page_content}"
         for i, doc in enumerate(retrieved_docs)
     ])
 
     prompt = ChatPromptTemplate.from_template("""
-You are a senior Chartered Accountant (CA) and financial auditor.
+You are an expert financial analyst AI assistant.
 
-Your job is to analyze the bank statement with STRICT accuracy.
+RULES:
+1. Read ALL chunks carefully — numbers may appear in the raw page text chunks, not just table chunks
+2. If calculated results are provided, use those exact numbers
+3. If numbers are found anywhere in the context, use them — do NOT say "not found" if the data is there
+4. Mention exact figures, dates, and descriptions
+5. Format amounts clearly (e.g. ₹1,25,000 or $1,250.00)
+6. Only say "Not found in the statement" if the data is truly absent from ALL chunks below
 
-CRITICAL RULES:
-1. You MUST answer ONLY using the provided context and calculated results.
-2. You are FORBIDDEN from guessing, estimating, or assuming anything.
-3. If the exact answer is not explicitly present, respond ONLY:
-   "Not found in the statement"
-4. ALWAYS cross-check both CONTEXT and CALCULATED RESULTS before answering.
-5. If numbers are involved:
-   - Use ONLY the provided calculated values
-   - Do NOT recompute unless clearly required
-6. Quote exact transaction details when relevant:
-   - Date
-   - Description
-   - Amount
-7. Format all currency properly (₹1,25,000.00 or $1,250.00)
-
-REASONING PROCESS (MANDATORY):
-- Step 1: Identify relevant rows from context
-- Step 2: Verify with calculated results
-- Step 3: Answer ONLY if fully supported
-
----STATEMENT CONTEXT---
+---RETRIEVED CHUNKS (includes full page text + table rows)---
 {context}
 
----CALCULATED RESULTS---
+---CALCULATED RESULTS (use these exact numbers if available)---
 {calculated}
 
 ---QUESTION---
 {question}
 
----FINAL ANSWER (STRICT, FACTUAL)---
+---ANSWER---
 """)
+
     llm   = get_qwen_llm()
     chain = prompt | llm | StrOutputParser()
 
     answer = chain.invoke({
         "context"   : formatted_context,
-        "calculated": calculated if calculated else "No calculation needed.",
+        "calculated": calculated if calculated else "No calculation performed.",
         "question"  : question
     })
 
     return answer, calculated
 
 
+#  Session State
 
-# SESSION STATE INITIALIZATION
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-
-if "chat_history"  not in st.session_state:
-    st.session_state.chat_history  = []
-    # Stores list of {"role": "user"/"bot", "content": "...", "calc": "..."}
-
-if "retriever"     not in st.session_state:
-    st.session_state.retriever     = None
+if "retriever" not in st.session_state:
+    st.session_state.retriever = None
 
 if "pdf_processed" not in st.session_state:
     st.session_state.pdf_processed = False
 
-if "pdf_stats"     not in st.session_state:
-    st.session_state.pdf_stats     = {}
+if "pdf_stats" not in st.session_state:
+    st.session_state.pdf_stats = {}
 
 
-
-# SIDEBAR
-
+# Sidebar 
 
 with st.sidebar:
-    st.markdown("""
-    <div style='text-align:center; padding-bottom:1rem;'>
-        <div style='font-family:Space Mono,monospace; font-size:1.3rem;
-                    color:#00d4aa; font-weight:700;'>💳 FinanceIQ</div>
-        <div style='color:#6b7a99; font-size:0.8rem;'>Bank Statement Analyzer</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.title("💳 FinanceIQ")
+    st.caption("Bank Statement Analyzer")
+    st.divider()
 
-    st.markdown('<div class="sidebar-section">📄 Upload Statement</div>',
-                unsafe_allow_html=True)
+    st.subheader("📄 Upload Statement")
 
     uploaded_file = st.file_uploader(
-        label       = "Upload your bank statement PDF",
-        type        = ["pdf"],
-        label_visibility = "collapsed",
-        help        = "Supports any bank statement in PDF format"
+        label="Upload your bank statement PDF",
+        type=["pdf"],
+        help="Supports any bank statement or annual report in PDF format"
     )
 
     if uploaded_file:
-        st.markdown(f"""
-        <div style='background:#00d4aa11; border:1px solid #00d4aa33;
-                    border-radius:8px; padding:0.7rem; margin:0.5rem 0;
-                    font-size:0.82rem;'>
-            📎 <b>{uploaded_file.name}</b><br>
-            <span style='color:#6b7a99;'>
-                {uploaded_file.size / 1024:.1f} KB
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(f"**File:** {uploaded_file.name}")
+        st.write(f"**Size:** {uploaded_file.size / 1024:.1f} KB")
 
         if st.button("⚡ Process & Index PDF", use_container_width=True):
             with st.spinner("Extracting text and tables..."):
                 extracted = extract_pdf_content(uploaded_file)
 
-            with st.spinner("Creating transaction-safe chunks..."):
+            with st.spinner("Creating chunks..."):
                 chunks = chunk_by_transactions(extracted)
 
             with st.spinner(f"Embedding {len(chunks)} chunks with NVIDIA..."):
@@ -720,185 +415,109 @@ with st.sidebar:
                 "chunks"       : len(chunks),
                 "filename"     : uploaded_file.name
             }
-            st.success("✅ Ready! Ask your questions →")
+            st.success("✅ Ready! Ask your questions.")
             st.rerun()
 
+    st.divider()
+    st.subheader("🤖 Models Used")
+    st.write("**Embedding:** nemoretriever-300m")
+    st.write("**LLM:** Qwen3.5-122B")
+    st.write("**Vector DB:** Pinecone")
+    st.write("**Calculator:** Python pandas")
 
-    # ── Model Info ──
-    st.markdown('<div class="sidebar-section">🤖 Models</div>',
-                unsafe_allow_html=True)
-    st.markdown("""
-    <div style='font-size:0.78rem; color:#6b7a99; line-height:1.8;'>
-        <span style='color:#00d4aa;'>●</span> Embedding: nemoretriever-300m<br>
-        <span style='color:#4f7cff;'>●</span> LLM: Qwen3.5-122B-A10B<br>
-        <span style='color:#f59e0b;'>●</span> Vector DB: Pinecone<br>
-        <span style='color:#00d4aa;'>●</span> Calculator: Python pandas
-    </div>
-    """, unsafe_allow_html=True)
+    st.divider()
+    st.subheader("💡 Example Questions")
+    st.write("- What is my total spending?")
+    st.write("- What is the closing balance?")
+    st.write("- How many transactions were made?")
+    st.write("- What is the largest debit?")
+    st.write("- What is the revenue / profit for the year?")
 
-    # ── Example Questions ──
-    st.markdown('<div class="sidebar-section">💡 Example Questions</div>',
-                unsafe_allow_html=True)
-
-
-
-    # ── Clear Chat ──
     if st.session_state.chat_history:
-        st.markdown('<div class="sidebar-section">⚙️ Actions</div>',
-                    unsafe_allow_html=True)
+        st.divider()
         if st.button("🗑️ Clear Chat History", use_container_width=True):
             st.session_state.chat_history = []
             st.rerun()
 
 
+# Main Page
 
+st.title("💳 FinanceIQ — Bank Statement Analyzer")
+st.caption("Powered by NVIDIA Qwen3.5 · Real Python math · Pinecone vector search")
+st.divider()
 
-
-st.markdown("""
-<div class="main-header">
-    <h1>💳 FinanceIQ</h1>
-    <p>AI-powered bank statement analyzer · NVIDIA Qwen3.5 · Real Python math</p>
-</div>
-""", unsafe_allow_html=True)
-
-
-# PDF Stats
 if st.session_state.pdf_processed and st.session_state.pdf_stats:
     stats = st.session_state.pdf_stats
-    st.markdown(f"""
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-label">📄 Text Sections</div>
-            <div class="stat-value">{stats['text_sections']}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">📊 Tables Found</div>
-            <div class="stat-value">{stats['tables']}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">🧩 Indexed Chunks</div>
-            <div class="stat-value">{stats['chunks']}</div>
-        </div>
-    </div>
-    <div style='text-align:center; margin-bottom:1rem;'>
-        <span class="badge badge-green">✅ INDEXED</span>&nbsp;
-        <span class="badge badge-blue">{stats['filename']}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.success(f"✅ File indexed: **{stats['filename']}**")
 
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Text Pages",     stats["text_sections"])
+    col2.metric("Tables Found",   stats["tables"])
+    col3.metric("Indexed Chunks", stats["chunks"])
+    st.divider()
 
-#  Welcome screen
 if not st.session_state.pdf_processed:
-    st.markdown("""
-    <div style='text-align:center; padding:4rem 2rem;'>
-        <div style='font-size:4rem; margin-bottom:1rem;'>📂</div>
-        <div style='font-family:Space Mono,monospace; font-size:1.1rem;
-                    color:#e8edf5; margin-bottom:0.5rem;'>
-            Upload your bank statement to get started
-        </div>
-        <div style='color:#6b7a99; font-size:0.9rem;'>
-            Supports any bank · PDF format · All data stays private
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.info("👈 Upload a bank statement PDF from the sidebar to get started.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown("""
-        <div class="stat-card" style='text-align:center;'>
-            <div style='font-size:2rem;'>🔍</div>
-            <div style='color:#00d4aa; font-weight:600; margin:8px 0 4px;'>Smart Retrieval</div>
-            <div style='color:#6b7a99; font-size:0.82rem;'>NVIDIA embeddings find relevant transactions instantly</div>
-        </div>""", unsafe_allow_html=True)
+        st.write("🔍 **Smart Retrieval**")
+        st.write("NVIDIA embeddings find relevant transactions instantly.")
     with col2:
-        st.markdown("""
-        <div class="stat-card" style='text-align:center;'>
-            <div style='font-size:2rem;'>🔢</div>
-            <div style='color:#00d4aa; font-weight:600; margin:8px 0 4px;'>Real Calculator</div>
-            <div style='color:#6b7a99; font-size:0.82rem;'>Python pandas math — never guesses totals</div>
-        </div>""", unsafe_allow_html=True)
+        st.write("🔢 **Real Calculator**")
+        st.write("Python pandas math — never guesses totals.")
     with col3:
-        st.markdown("""
-        <div class="stat-card" style='text-align:center;'>
-            <div style='font-size:2rem;'>🤖</div>
-            <div style='color:#00d4aa; font-weight:600; margin:8px 0 4px;'>Qwen3.5 LLM</div>
-            <div style='color:#6b7a99; font-size:0.82rem;'>256K context window for full statement analysis</div>
-        </div>""", unsafe_allow_html=True)
+        st.write("🤖 **Qwen3.5 LLM**")
+        st.write("256K context window for full statement analysis.")
 
+# Chat Interface 
 
-# Chat Interface
 if st.session_state.pdf_processed:
+    st.subheader("💬 Ask about your statement")
 
-    # Display chat history
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
-            st.markdown(f"""
-            <div class="msg-user">{msg['content']}</div>
-            """, unsafe_allow_html=True)
+            with st.chat_message("user"):
+                st.write(msg["content"])
         else:
-            st.markdown(f"""
-            <div class="msg-bot">{msg['content']}</div>
-            """, unsafe_allow_html=True)
+            with st.chat_message("assistant"):
+                st.write(msg["content"])
+                if msg.get("calc"):
+                    st.write("**🔢 Calculated Results:**")
+                    st.code(msg["calc"], language="text")
 
-            # Show calculator results if any
-            if msg.get("calc"):
-                st.markdown(f"""
-                <div class="calc-result">{msg['calc']}</div>
-                """, unsafe_allow_html=True)
-
-    #Question Input
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Check if an example question was clicked from sidebar
-    prefill = st.session_state.pop("prefill_question", "")
-
-    question = st.chat_input(
-        placeholder = "Ask anything about your bank statement...",
-    )
-
-    # Handle sidebar example button click
-    if prefill and not question:
-        question = prefill
+    question = st.chat_input("Ask anything about your bank statement...")
 
     if question:
-        # Add user message to history
+        with st.chat_message("user"):
+            st.write(question)
+
         st.session_state.chat_history.append({
             "role"   : "user",
             "content": question
         })
 
-        # Show user message immediately
-        st.markdown(f"""
-        <div class="msg-user">{question}</div>
-        """, unsafe_allow_html=True)
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    answer, calculated = answer_question(
+                        question,
+                        st.session_state.retriever
+                    )
 
-        # Get answer
-        with st.spinner("🤔 Thinking..."):
-            try:
-                answer, calculated = answer_question(
-                    question,
-                    st.session_state.retriever
-                )
+                    st.write(answer)
 
-                # Add bot response to history
-                st.session_state.chat_history.append({
-                    "role"   : "bot",
-                    "content": answer,
-                    "calc"   : calculated
-                })
+                    if calculated:
+                        st.write("**🔢 Calculated Results:**")
+                        st.code(calculated, language="text")
 
-                # Show answer
-                st.markdown(f"""
-                <div class="msg-bot">{answer}</div>
-                """, unsafe_allow_html=True)
+                    st.session_state.chat_history.append({
+                        "role"   : "bot",
+                        "content": answer,
+                        "calc"   : calculated
+                    })
 
-                # Show calculator results if calculation was done
-                if calculated:
-                    st.markdown(f"""
-                    <div class="calc-result">{calculated}</div>
-                    """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
 
         st.rerun()
