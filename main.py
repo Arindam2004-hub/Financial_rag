@@ -7,7 +7,7 @@ import pandas as pd
 from io import StringIO
 from dotenv import load_dotenv
 
-# ✅ Correct imports for NEW LangChain versions
+#  Correct imports for NEW LangChain versions
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -256,10 +256,7 @@ def run_calculator(retrieved_docs: list[Document]) -> str:
 
     if not all_rows:
         return ""
-    # Return empty string if no table data found
-    # The LLM will then answer from text context alone
-
-    # Combine all retrieved chunks into one DataFrame
+    
     combined_df = pd.concat(all_rows, ignore_index=True)
 
 
